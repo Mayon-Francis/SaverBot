@@ -12,8 +12,11 @@ api = tweepy.API(auth, wait_on_rate_limit=True,
 try:
     api.verify_credentials()
     print("Authentication OK")
-    for tweet in api.search(q="Python", lang="en", rpp=10):
-        print(f"{tweet.user.name}:{tweet.text}")
+    since_id = 1
+    for tweet in tweepy.Cursor(api.mentions_timeline,since_id=since_id).items():
+        print(api.get_status(tweet.in_reply_to_status_id_str).text)
+        print(tweet.text)
+        
 
 except:
     print("Error during authentication")
