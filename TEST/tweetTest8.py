@@ -98,6 +98,11 @@ def check_mentions(api, since_id):
                 #they might not be following us
                 except tweepy.TweepError as e:
                     logger.info(e.reason)
+                    if e.reason == "[{'code': 144, 'message': 'No status found with that ID.'}]":
+                        logger.info(f"Replying to {tweet.user.name}'s tweet with Id: {tweet.id_str} ,parent tweet deleted")
+                        api.update_status(status = 'Uh oh, seems like that tweet was deleted!', in_reply_to_status_id = tweet.id , auto_populate_reply_metadata=True)
+                    
+                    
                     logger.info(f"Replying and asking to follow to {tweet.user.name}'s tweet with Id: {tweet.id_str} ")
                     api.update_status(status = 'Please follow @saverbot1 to get this tweet link as DM', in_reply_to_status_id = tweet.id , auto_populate_reply_metadata=True)
                     continue
