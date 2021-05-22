@@ -2,7 +2,8 @@ import tweepy
 import logging
 import time
 
-
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
 # Authenticate to Twitter
 if('TWITTER_API_KEY' in os.environ):
     TWITTER_API_KEY = str(os.environ['TWITTER_API_KEY'])
