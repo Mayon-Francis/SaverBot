@@ -47,11 +47,9 @@ api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 #Bot User Object (self)
 screen_name = "saverbot1"
 botUser = api.get_user(screen_name)
-#Stores Ids of followers, most recent follower first according to documentation
-bot_followers_ids = api.followers_ids(botUser)
 
-
-
+# Stores Ids of followers, most recent follower first according to documentation
+# bot_followers_ids = api.followers_ids(botUser)
 
 # If the person unfollows us after we get value from api, we will think it follows us, hence there is try,except 
 # when trying to send dm
