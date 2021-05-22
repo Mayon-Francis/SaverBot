@@ -46,6 +46,11 @@ auth.set_access_token(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
 api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 
 
+#Bot User Object (self)
+screen_name = "saverbot1"
+botUser = api.get_user(screen_name)
+
+
 def checkNotFollower(tid):
     for follower in tweepy.Cursor(api.followers).items():
       if follower.id == tid:
@@ -57,9 +62,13 @@ def check_mentions(api, since_id):
     logger.info("Retrieving mentions")
     new_since_id = since_id
 
-    for tweet in tweepy.Cursor(api.search, q="@saverbot1 save", since_id = since_id).items():
+    for tweet in tweepy.Cursor(api.search, q="@saverbot1", since_id = since_id).items():
         try:
             new_since_id = max(tweet.id, new_since_id)
+            
+            #ignore tweets sent by self
+            if tweet.user.id_str == botUser.id_str:
+                continue
 
             if checkNotFollower(tweet.user.id):
                 timeNow = datetime.datetime.now()
@@ -70,18 +79,21 @@ def check_mentions(api, since_id):
             #only get mentions that are replies to other tweets
             if tweet.in_reply_to_status_id_str is None:
                 continue
+
+
             else:
                 parentTweet = api.get_status(tweet.in_reply_to_status_id_str)
                 logger.info(f"Saving tweet with Id: {parentTweet.id_str} for {tweet.user.name}") 
             
                 api.send_direct_message(tweet.user.id,"https://twitter.com/twitter/statuses/"+str(parentTweet.id) ) 
                 print(parentTweet.text)
+
         except tweepy.TweepError as e:
             logger.error(e.reason)
             continue
 
-        
     return new_since_id
+        
 
 
 since_id = 1
