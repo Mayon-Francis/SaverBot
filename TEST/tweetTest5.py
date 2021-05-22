@@ -1,20 +1,46 @@
 import tweepy
 import logging
 import time
-
-
-# Authenticate to Twitter
-auth = tweepy.OAuthHandler("2V9sr0LnXGYd4xhHpaHo0qAiN", 
-    "bAWaOApquGcBbgBhPUVRlsB8gYxagm9uXdFGtYjw7hmmLHf5q4")
-auth.set_access_token("1395238073303126016-sUuVvRffNxLfO7EbvYFKUCA3tKYw4W", 
-    "axpj3XB1lWQy75YTnpQRJQ5d6izelf85ybYUEUFO7lHYs")
-
-
-api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 
+#GET KEYS FROM ENVIRONMENT VARIABLE  
+if('TWITTER_API_KEY' in os.environ):
+    TWITTER_API_KEY = str(os.environ['TWITTER_API_KEY'])
+else:
+    logger.error("cannot access api key") 
+    raise Exception("Couldn't Read Api Key from Env Variable!!")
+
+if('TWITTER_API_SECRET_KEY' in os.environ):
+    TWITTER_API_SECRET_KEY = str(os.environ['TWITTER_API_SECRET_KEY'])
+else:
+    logger.error("cannot access api key secret") 
+    raise Exception("Couldn't Read Api Key Secret from Env Variable!!")
+
+if('TWITTER_ACCESS_TOKEN' in os.environ):
+    TWITTER_ACCESS_TOKEN = str(os.environ['TWITTER_ACCESS_TOKEN'])
+else:
+    logger.error("cannot access, Access Token") 
+    raise Exception("Couldn't Read Twitter Access Token from Env Variable!!")
+
+if('TWITTER_ACCESS_TOKEN_SECRET' in os.environ):
+    TWITTER_ACCESS_TOKEN_SECRET = str(os.environ['TWITTER_ACCESS_TOKEN_SECRET'])
+else:
+    logger.error("cannot access, Access Token Secret") 
+    raise Exception("Couldn't Read Twitter Access Token Secret from Env Variable!!")
+
+
+
+
+# Authenticate to Twitter
+auth = tweepy.OAuthHandler(TWITTER_API_KEY, TWITTER_API_SECRET_KEY)
+auth.set_access_token(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
+
+api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+
+botName = "saverbot1"
 
 def check_mentions(api, since_id):
     logger.info("Retrieving mentions")
@@ -28,10 +54,16 @@ def check_mentions(api, since_id):
             continue
         else:
             parentTweet = api.get_status(tweet.in_reply_to_status_id_str)
-            logger.info(f"Saving tweet with Id: {parentTweet.id_str} for {tweet.user.name}") 
-           
-            api.send_direct_message(tweet.user.id,"https://twitter.com/twitter/statuses/"+str(parentTweet.id) ) 
-            print(parentTweet.text)
+
+            if tweet.user.screen_name in api.followers(botName):
+                logger.info(f"Saving tweet with Id: {parentTweet.id_str} for {tweet.user.name}") 
+                api.send_direct_message(tweet.user.id,"https://twitter.com/twitter/statuses/"+str(parentTweet.id) ) 
+                print(parentTweet.text)
+            else:
+                logger.info(f"user: {tweet.user.id_str} doesn't follow us, sending reply to follow us")
+                status = "Hello @" + str(tweet.user.screen_name) + "seems like you are not following us,\n Pls follow us so that we can send you the tweet as a dm.\n Click here to follow us!: https://twitter.com/intent/user?screen_name=saverbot1"
+                api.update_status(status = status, in_reply_to_status_id = tweet.id_str)
+                
         
     return new_since_id
   

@@ -54,7 +54,7 @@ def check_mentions(api, since_id):
             continue
         else:
             parentTweet = api.get_status(tweet.in_reply_to_status_id_str)
-            logger.info(f"Saving tweet with Id: {parentTweet.id_str} for {tweet.user.name}") 
+            logger.info(f"Sending tweet with Id: {parentTweet.id_str} to {tweet.user.name}") 
             direct_message = api.send_direct_message(tweet.user.id, parentTweet.text)  
             print(parentTweet.text)
         
