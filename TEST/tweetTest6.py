@@ -46,7 +46,7 @@ auth.set_access_token(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
 api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 
 
-def checkfollower(tid):
+def checkNotFollower(tid):
     for follower in tweepy.Cursor(api.followers).items():
       if follower.id == tid:
           return False
@@ -57,12 +57,13 @@ def check_mentions(api, since_id):
     logger.info("Retrieving mentions")
     new_since_id = since_id
 
-    for tweet in tweepy.Cursor(api.search, q="@saverbot1", since_id = since_id).items():
+    for tweet in tweepy.Cursor(api.search, q="@saverbot1 save", since_id = since_id).items():
         try:
             new_since_id = max(tweet.id, new_since_id)
 
-            if checkfollower(tweet.user.id):
+            if checkNotFollower(tweet.user.id):
                 timeNow = datetime.datetime.now()
+                logger.info(f"Replying and asking to follow to {tweet.user.name}'s tweet with Id: {tweet.id_str} ")
                 api.update_status(status = 'Please follow @saverbot1 to get this tweet link as DM', in_reply_to_status_id = tweet.id , auto_populate_reply_metadata=True)
                 continue
 
