@@ -1,19 +1,30 @@
 while True:
     try:
-        f=open('since_id.txt','r')
-        since_id = int(f.read())
-        f.close()
 
         import tweepy
         import logging
         import time
         import os
+        from github import Github
 
 
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger()
 
+        try:
+            token = os.getenv('GITHUB_TOKEN')
+            g = Github(token)
+            repo = g.get_repo("saverbot/saverbot_sinceID")
+            contents = repo.get_contents("since_id.txt", ref="main")
+            since_id = str(contents.decoded_content.decode())
+        except Exception as e:
+            print("Github Get Failed!")
+            print(e)
+            time.sleep(5)
+  
 
+
+        
 
         #GET KEYS FROM ENVIRONMENT VARIABLE  
         if('TWITTER_API_KEY' in os.environ):
@@ -48,6 +59,9 @@ while True:
         auth.set_access_token(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
 
         api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+
+
+        
 
 
         #Bot User Object (self)
@@ -101,10 +115,9 @@ while True:
         def check_mentions(api, since_id):
             logger.info("Retrieving mentions")
             new_since_id = since_id
-
             for tweet in tweepy.Cursor(api.search, q="@saverbot1", since_id = since_id).items():
                 try:
-                    new_since_id = max(tweet.id, new_since_id)
+                    new_since_id = max(tweet.id_str, new_since_id)
                     
                     #ignore tweets sent by self
                     if tweet.user.id_str == botUser.id_str:
@@ -134,6 +147,9 @@ while True:
                 except tweepy.TweepError as e:
                     logger.error(e.reason)
                     continue
+                except Exception as e:
+                    print("HERE")
+                    logger.error(e)
 
             return new_since_id
    
@@ -151,10 +167,9 @@ while True:
 
 
         while True:
+            since_id = str(since_id)
             since_id = check_mentions(api, since_id)
-            f= open("since_id.txt","w")
-            f.write(str(since_id))
-            f.close()
+            repo.update_file(contents.path, "Update since_id", since_id, contents.sha, branch="main")
             if( len(pendingTweetsList) != 0 ):
                 logger.info("Trying Peninding...")
                 print(pendingTweetsList)

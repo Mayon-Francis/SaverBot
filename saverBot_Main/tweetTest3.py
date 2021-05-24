@@ -1,8 +1,8 @@
+#  GETS SINCE ID FROM ENVIRONMENT, MIGHT NOT WORK!!!!!!
 while True:
     try:
-        f=open('since_id.txt','r')
-        since_id = int(f.read())
-        f.close()
+
+        SINCE_ID = os.getenv('SINCE_ID')
 
         import tweepy
         import logging
@@ -151,10 +151,10 @@ while True:
 
 
         while True:
-            since_id = check_mentions(api, since_id)
-            f= open("since_id.txt","w")
-            f.write(str(since_id))
-            f.close()
+
+            SINCE_ID = check_mentions(api, SINCE_ID)
+            os.environ['SINCE_ID'] = SINCE_ID
+
             if( len(pendingTweetsList) != 0 ):
                 logger.info("Trying Peninding...")
                 print(pendingTweetsList)
@@ -170,6 +170,4 @@ while True:
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger()
         logger.error(e.reason)
-        logger.error("Full Refresh")
-    except:
         logger.error("Full Refresh")
