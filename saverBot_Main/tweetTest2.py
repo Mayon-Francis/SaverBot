@@ -54,7 +54,16 @@ while True:
         screen_name = "saverbot1"
         botUser = api.get_user(screen_name)
 
-        pendingTweets = {}
+        class pendingTweets:
+            recieverId = ""
+            parentTweetId = ""
+            iterationsOver = 1
+
+            def __init__(self, recieverId, parentTweetId):
+                self.recieverId = recieverId
+                self.parentTweetId = parentTweetId
+
+        pendingTweetsList = list()
 
 
 
@@ -68,24 +77,26 @@ while True:
                 logger.info(e.reason)
                 return e.reason
         
-
-        def tryPending(pendingTweets):
-            for recieverId in pendingTweets:
-                parentTweetId = list(pendingTweets[recieverId].keys())[0]
-                dmStatus = sendDm(recieverId, "https://twitter.com/twitter/statuses/"+ parentTweetId )
-                popList = list()
+        ## PENDING DOES NOT WORK YET!!
+        def tryPending(pendingTweetsList):
+            listLen = len(pendingTweetsList)
+            listLen -=1
+            while(listLen >= 0):
+                instance = pendingTweetsList[listLen]
+                dmStatus = sendDm(instance.recieverId, "https://twitter.com/twitter/statuses/"+ instance.parentTweetId )
                 if(dmStatus == "success"):
-                    popList.append(recieverId)
+                    pendingTweetsList.pop(listLen)
+                    listLen-=1
                     continue
-                elif (pendingTweets[recieverId][parentTweetId] > 120960 ) :   # adjust 120960 which is 7 days per requirements,
-                    popList.append(recieverId)
+                elif (instance.iterationsOver > 120960 ) :   # adjust 120960 which is 7 days as per requirements,
+                    pendingTweetsList.pop(listLen)
+                    listLen-=1
                 else:
-                    pendingTweets[recieverId][parentTweetId] +=1
+                    pendingTweetsList[listLen].iterationsOver+=1
+                listLen-=1                
             
-            for recieverId in popList:
-                pendingTweets.pop(recieverId)
-            del popList
-            return pendingTweets
+
+            return pendingTweetsList
 
         def check_mentions(api, since_id):
             logger.info("Retrieving mentions")
@@ -105,7 +116,7 @@ while True:
 
                     else:
                         parentTweet = api.get_status(tweet.in_reply_to_status_id_str)
-                        dmStatus = sendDm(tweet.user.id, "https://twitter.com/twitter/statuses/"+str(parentTweet.id))
+                        dmStatus = sendDm(tweet.user.id, "https://twitter.com/twitter/statuses/"+ parentTweet.id_str)
 
                         if(dmStatus == "success"):
                             continue
@@ -115,7 +126,8 @@ while True:
                             continue
                         else:
                             logger.info(f"adding {tweet.user.id_str}'s {parentTweet.id_str} to pendingTweets")
-                            pendingTweets.update({tweet.user.id_str: {parentTweet.id_str : 1}})  # 1 so that initialise with iterated times 1 
+                            pendingTweetsList.append(pendingTweets(tweet.user.id_str, parentTweet.id_str))  # 1 so that initialise with iterated times 1 
+            
                             logger.info(f"Replying and asking to follow to {tweet.user.name}'s tweet with Id: {tweet.id_str} ")
                             api.update_status(status = 'Please follow @saverbot1 to get this tweet link as DM', in_reply_to_status_id = tweet.id , auto_populate_reply_metadata=True)
                             continue
@@ -143,10 +155,10 @@ while True:
             f= open("since_id.txt","w")
             f.write(str(since_id))
             f.close()
-            if( len(pendingTweets) != 0 ):
+            if( len(pendingTweetsList) != 0 ):
                 logger.info("Trying Peninding...")
                 print(pendingTweets)
-                pendingTweets = tryPending(pendingTweets)
+                pendingTweetsList = tryPending(pendingTweetsList)
 
             logger.info("Waiting...")
             time.sleep(5)
