@@ -1,9 +1,8 @@
 while True:
-    f=open('since_id.txt','r')
-
-    since_id = int(f.read())
-    f.close()
     try:
+        f=open('since_id.txt','r')
+        since_id = int(f.read())
+        f.close()
 
         import tweepy
         import logging
@@ -55,7 +54,38 @@ while True:
         screen_name = "saverbot1"
         botUser = api.get_user(screen_name)
 
+        pendingTweets = {}
 
+
+
+        def sendDm(recieverId, message):
+            logger.info(f"Attempting to send tweet with message: '{message}' for person with Id{recieverId}")
+            try: 
+                api.send_direct_message(recieverId,message)
+                logger.info("Dm sent Successfully")
+                return "success"
+            except tweepy.TweepError as e:
+                logger.info(e.reason)
+                return e.reason
+        
+
+        def tryPending(pendingTweets):
+            for recieverId in pendingTweets:
+                parentTweetId = list(pendingTweets[recieverId].keys())[0]
+                dmStatus = sendDm(recieverId, "https://twitter.com/twitter/statuses/"+ parentTweetId )
+                popList = list()
+                if(dmStatus == "success"):
+                    popList.append(recieverId)
+                    continue
+                elif (pendingTweets[recieverId][parentTweetId] > 20 ) :
+                    popList.append(recieverId)
+                else:
+                    pendingTweets[recieverId][parentTweetId] +=1
+            
+            for recieverId in popList:
+                pendingTweets.pop(recieverId)
+            del popList
+            return pendingTweets
 
         def check_mentions(api, since_id):
             logger.info("Retrieving mentions")
@@ -74,30 +104,29 @@ while True:
                         continue
 
                     else:
-                        try:
-                            parentTweet = api.get_status(tweet.in_reply_to_status_id_str)
-                            logger.info(f"Saving tweet with Id: {parentTweet.id_str} for {tweet.user.name}") 
-                            api.send_direct_message(tweet.user.id,"https://twitter.com/twitter/statuses/"+str(parentTweet.id) ) 
-                            print(parentTweet.text)
+                        parentTweet = api.get_status(tweet.in_reply_to_status_id_str)
+                        dmStatus = sendDm(tweet.user.id, "https://twitter.com/twitter/statuses/"+str(parentTweet.id))
 
-                        #they might not be following us
-                        except tweepy.TweepError as e:
-                            logger.info(e.reason)
-                            if e.reason == "[{'code': 144, 'message': 'No status found with that ID.'}]":
-                                logger.info(f"Replying to {tweet.user.name}'s tweet with Id: {tweet.id_str} ,parent tweet deleted")
-                                api.update_status(status = 'Uh oh, seems like that tweet was deleted!', in_reply_to_status_id = tweet.id , auto_populate_reply_metadata=True)
-                                continue
-                            
-                            
+                        if(dmStatus == "success"):
+                            continue
+                        elif (dmStatus == "[{'code': 144, 'message': 'No status found with that ID.'}]"):
+                            logger.info(f"Replying to {tweet.user.name}'s tweet with Id: {tweet.id_str} : parent tweet deleted")
+                            api.update_status(status = 'Uh oh, seems like that tweet was deleted!', in_reply_to_status_id = tweet.id , auto_populate_reply_metadata=True)
+                            continue
+                        else:
                             logger.info(f"Replying and asking to follow to {tweet.user.name}'s tweet with Id: {tweet.id_str} ")
                             api.update_status(status = 'Please follow @saverbot1 to get this tweet link as DM', in_reply_to_status_id = tweet.id , auto_populate_reply_metadata=True)
+                            logger.info(f"adding {tweet.user.id_str}'s {parentTweet.id_str} to pendingTweets")
+                            pendingTweets.update({tweet.user.id_str: {parentTweet.id_str : 1}})  # 1 so that initialise with iterated times 1 
                             continue
-
                 except tweepy.TweepError as e:
                     logger.error(e.reason)
                     continue
 
             return new_since_id
+   
+
+
                 
 
 
@@ -114,8 +143,15 @@ while True:
             f= open("since_id.txt","w")
             f.write(str(since_id))
             f.close()
+            if( len(pendingTweets) != 0 ):
+                logger.info("Trying Peninding...")
+                print(pendingTweets)
+                pendingTweets = tryPending(pendingTweets)
+
             logger.info("Waiting...")
             time.sleep(5)
+                
+
 
     except tweepy.TweepError as e:
         import logging
