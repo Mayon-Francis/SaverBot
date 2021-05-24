@@ -157,7 +157,7 @@ while True:
             f.close()
             if( len(pendingTweetsList) != 0 ):
                 logger.info("Trying Peninding...")
-                print(pendingTweets)
+                print(pendingTweetsList)
                 pendingTweetsList = tryPending(pendingTweetsList)
 
             logger.info("Waiting...")
