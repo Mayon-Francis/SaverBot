@@ -1,4 +1,3 @@
-pendingTweetsList = list()  
 while True:
     try:
 
@@ -7,6 +6,7 @@ while True:
         import time
         import os
         from github import Github
+        import json
 
 
         logging.basicConfig(level=logging.INFO)
@@ -17,6 +17,9 @@ while True:
             g = Github(token)
             repo = g.get_repo("saverbot/saverbot_sinceID")
             contents = repo.get_contents("since_id.txt", ref="main")
+            pendingContent = repo.get_contents("pendingTweetListFile.txt", ref="main")
+
+            pendingTweetsList = json.loads(pendingContent.decoded_content.decode())
             since_id = str(contents.decoded_content.decode())
         except Exception as e:
             print("Github Get Failed!")
@@ -78,6 +81,7 @@ while True:
                 self.recieverId = recieverId
                 self.parentTweetId = parentTweetId
 
+        pendingTweetsList = list()
 
 
 
@@ -170,6 +174,8 @@ while True:
             since_id = str(since_id)
             since_id = check_mentions(api, since_id)
             repo.update_file(contents.path, "Update since_id", since_id, contents.sha, branch="main")
+            repo.update_file(pendingContent.path, "Update pending List", json.dumps(pendingTweetsList), pendingContent.sha, branch="main")
+
             if( len(pendingTweetsList) != 0 ):
                 logger.info("Trying Peninding...")
                 print(pendingTweetsList)
